@@ -32,4 +32,19 @@ python main.py
 # Next features
 - Add options to add other LLM Providers
 - Add option to draft a response to the email
-- Add option 
+- Add human in the loop to review the email draft response and send it on confirmation
+- Add scheduler to send emails at a specific time
+- Add follow-up reminders with customizable timing
+- Modify classifier into:
+    - Important
+    - Other
+    - VIP
+    - Team
+    - Shared
+    - News
+– Abstract out the Email Interface to make it easier to add new Email APIs
+- Add support for the following Email APIs
+    - Gmail
+    - Protonmail
+    - Hotmail
+    - Zoho
