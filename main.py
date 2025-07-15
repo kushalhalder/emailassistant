@@ -289,64 +289,6 @@ class EmailAssistant:
 class EmailAssistantApp(App):
     """Textual app for the Email Assistant"""
     
-    CSS = """
-    .log-container {
-        height: 1fr;
-        border: solid $primary;
-        margin: 1;
-    }
-    
-    .column-container {
-        height: 1fr;
-        width: 1fr;
-    }
-    
-    .left-column {
-        width: 1fr;
-        margin-right: 1;
-    }
-    
-    .right-column {
-        width: 1fr;
-        margin-left: 1;
-    }
-    
-    .column-title {
-        height: 1;
-        text-align: left;
-        background: $primary;
-        color: $text;
-        margin-bottom: 1;
-    }
-    
-    .input-container {
-        height: 3;
-        margin: 1;
-    }
-    
-    .status-container {
-        height: 3;
-        margin: 1;
-    }
-    
-    Log {
-        scrollbar-gutter: stable;
-        height: 1fr;
-        border: solid $primary;
-    }
-    
-    .input-widget {
-        background: $surface;
-        color: $text;
-        border: solid $primary;
-    }
-    
-    .input-widget:focus {
-        border: solid $accent;
-        background: $surface-lighten-1;
-    }
-    """
-    
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit"),
         Binding("ctrl+r", "restart", "Restart"),
@@ -356,6 +298,13 @@ class EmailAssistantApp(App):
         super().__init__()
         self.assistant = None
         self.processing_task = None
+        # Load CSS from external file
+        self.CSS_PATH = "styles.css"
+        try:
+            with open(self.CSS_PATH, 'r') as f:
+                self.CSS = f.read()
+        except FileNotFoundError:
+            self.CSS = ""  # Fallback to empty CSS if file not found
         
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
