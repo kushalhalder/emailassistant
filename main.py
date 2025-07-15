@@ -163,7 +163,7 @@ class EmailAssistant:
         try:
             content = f"Subject: {message.subject}\nFrom: {message.sender.email_address.address}\nBody: {message.body.content[:1000] if message.body.content else ''}"
             
-            self.log(f"🤖 Classifying: {message.subject[:50]}...")
+            # self.log(f"🤖 Classifying: {message.subject[:50]}...")
             
             # Get system prompt from config
             system_prompt = self.config.get('system_prompt', '')
@@ -467,6 +467,7 @@ class EmailAssistantApp(App):
             while self.assistant.is_running:
                 if not self.assistant.is_paused:
                     await self.assistant.process_inbox()
+                self.assistant.log("😴 Sleeping for 60 seconds")
                 await asyncio.sleep(60)  # Check every minute
         except asyncio.CancelledError:
             self.assistant.log("🛑 Processing loop stopped")
