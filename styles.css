@@ -1,0 +1,55 @@
+.log-container {
+    height: 1fr;
+    border: solid $primary;
+    margin: 1;
+}
+
+.column-container {
+    height: 1fr;
+    width: 1fr;
+}
+
+.left-column {
+    width: 1fr;
+    margin-right: 1;
+}
+
+.right-column {
+    width: 1fr;
+    margin-left: 1;
+}
+
+.column-title {
+    height: 1;
+    text-align: left;
+    background: $primary;
+    color: $text;
+    margin-bottom: 1;
+}
+
+.input-container {
+    height: 3;
+    margin: 1;
+}
+
+.status-container {
+    height: 3;
+    margin: 1;
+}
+
+Log {
+    scrollbar-gutter: stable;
+    height: 1fr;
+    border: solid $primary;
+}
+
+.input-widget {
+    background: $surface;
+    color: $text;
+    border: solid $primary;
+}
+
+.input-widget:focus {
+    border: solid $accent;
+    background: $surface-lighten-1;
+} 

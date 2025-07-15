@@ -163,7 +163,7 @@ class EmailAssistant:
         try:
             content = f"Subject: {message.subject}\nFrom: {message.sender.email_address.address}\nBody: {message.body.content[:1000] if message.body.content else ''}"
             
-            self.log(f"🤖 Classifying: {message.subject[:50]}...")
+            # self.log(f"🤖 Classifying: {message.subject[:50]}...")
             
             # Get system prompt from config
             system_prompt = self.config.get('system_prompt', '')
@@ -289,64 +289,6 @@ class EmailAssistant:
 class EmailAssistantApp(App):
     """Textual app for the Email Assistant"""
     
-    CSS = """
-    .log-container {
-        height: 1fr;
-        border: solid $primary;
-        margin: 1;
-    }
-    
-    .column-container {
-        height: 1fr;
-        width: 1fr;
-    }
-    
-    .left-column {
-        width: 1fr;
-        margin-right: 1;
-    }
-    
-    .right-column {
-        width: 1fr;
-        margin-left: 1;
-    }
-    
-    .column-title {
-        height: 1;
-        text-align: left;
-        background: $primary;
-        color: $text;
-        margin-bottom: 1;
-    }
-    
-    .input-container {
-        height: 3;
-        margin: 1;
-    }
-    
-    .status-container {
-        height: 3;
-        margin: 1;
-    }
-    
-    Log {
-        scrollbar-gutter: stable;
-        height: 1fr;
-        border: solid $primary;
-    }
-    
-    .input-widget {
-        background: $surface;
-        color: $text;
-        border: solid $primary;
-    }
-    
-    .input-widget:focus {
-        border: solid $accent;
-        background: $surface-lighten-1;
-    }
-    """
-    
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit"),
         Binding("ctrl+r", "restart", "Restart"),
@@ -356,6 +298,13 @@ class EmailAssistantApp(App):
         super().__init__()
         self.assistant = None
         self.processing_task = None
+        # Load CSS from external file
+        self.CSS_PATH = "styles.css"
+        try:
+            with open(self.CSS_PATH, 'r') as f:
+                self.CSS = f.read()
+        except FileNotFoundError:
+            self.CSS = ""  # Fallback to empty CSS if file not found
         
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -371,17 +320,17 @@ class EmailAssistantApp(App):
                 # Left column - Marked as Read
                 with Vertical(classes="left-column"):
                     yield Static("📫 Marked as Read (Auto-processed)", classes="column-title")
-                    yield Log(id="marked_as_read_log", auto_scroll=True)
+                    yield Log(id="marked_as_read_log", auto_scroll=True, max_lines=50)
                 
                 # Right column - Needs Reply  
                 with Vertical(classes="right-column"):
                     yield Static("💬 Needs Reply (Requires Attention)", classes="column-title")
-                    yield Log(id="needs_reply_log", auto_scroll=True)
+                    yield Log(id="needs_reply_log", auto_scroll=True, max_lines=50)
             
             # General log area (smaller, for system messages)
             with Vertical(classes="log-container"):
                 yield Static("🔧 System Log", classes="column-title")
-                yield Log(id="general_log", auto_scroll=True)
+                yield Log(id="general_log", auto_scroll=True, max_lines=50)
             
             # Input area
             with Horizontal(classes="input-container"):
@@ -467,6 +416,7 @@ class EmailAssistantApp(App):
             while self.assistant.is_running:
                 if not self.assistant.is_paused:
                     await self.assistant.process_inbox()
+                self.assistant.log("😴 Sleeping for 60 seconds")
                 await asyncio.sleep(60)  # Check every minute
         except asyncio.CancelledError:
             self.assistant.log("🛑 Processing loop stopped")
