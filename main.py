@@ -320,17 +320,17 @@ class EmailAssistantApp(App):
                 # Left column - Marked as Read
                 with Vertical(classes="left-column"):
                     yield Static("📫 Marked as Read (Auto-processed)", classes="column-title")
-                    yield Log(id="marked_as_read_log", auto_scroll=True)
+                    yield Log(id="marked_as_read_log", auto_scroll=True, max_lines=50)
                 
                 # Right column - Needs Reply  
                 with Vertical(classes="right-column"):
                     yield Static("💬 Needs Reply (Requires Attention)", classes="column-title")
-                    yield Log(id="needs_reply_log", auto_scroll=True)
+                    yield Log(id="needs_reply_log", auto_scroll=True, max_lines=50)
             
             # General log area (smaller, for system messages)
             with Vertical(classes="log-container"):
                 yield Static("🔧 System Log", classes="column-title")
-                yield Log(id="general_log", auto_scroll=True)
+                yield Log(id="general_log", auto_scroll=True, max_lines=50)
             
             # Input area
             with Horizontal(classes="input-container"):
