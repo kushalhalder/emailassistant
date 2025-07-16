@@ -118,7 +118,7 @@ truststore @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs
 typer==0.16.0
 typing_extensions==4.14.1
 uc-micro-py==1.0.3
-urllib3==2.0.7
+urllib3==2.5.0
 virtualenv==20.31.2
 watchdog==6.0.0
 wheel==0.45.1
