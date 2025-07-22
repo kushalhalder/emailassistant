@@ -1,8 +1,9 @@
 import asyncio
 from msgraph import GraphServiceClient
 from azure.identity import ClientSecretCredential
-from instructor import from_openai
-from openai import OpenAI
+from instructor import from_litellm
+from litellm import completion
+import litellm
 from msgraph.generated.users.item.messages.messages_request_builder import MessagesRequestBuilder
 from msgraph.generated.models.message import Message
 from pydantic import BaseModel, Field
@@ -59,18 +60,18 @@ class EmailAssistant:
         # Store the user whose emails to process
         self.user_email = user_email
         
-        # Initialize OpenAI client with configuration
-        openai_client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url=os.getenv("OPENAI_BASE_URL"),  # Optional: for custom endpoints
-            organization=os.getenv("OPENAI_ORGANIZATION"),  # Optional: for org-specific usage
-        )
+        # Initialize LLM provider configuration
+        self.llm_config = self.config.get('llm', {})
+        self.provider = self.llm_config.get('provider', 'openai')
         
-        # Get model from config with fallback
-        self.model = self.config.get('openai', {}).get('model', 'gpt-4o-mini')
+        # Configure LiteLLM based on provider
+        self._configure_litellm()
         
-        # Initialize LLM with structured outputs
-        self.llm_client = from_openai(openai_client)
+        # Validate provider configuration
+        self._validate_provider_config()
+        
+        # Initialize LLM with structured outputs  
+        self.llm_client = from_litellm(completion)
         
         # State management
         self.is_running = False
@@ -78,6 +79,96 @@ class EmailAssistant:
         self.marked_as_read_logger = None
         self.needs_reply_logger = None
         self.general_logger = None
+    
+    def _configure_litellm(self):
+        """Configure LiteLLM based on the selected provider"""
+        provider_config = self.llm_config.get(self.provider, {})
+        
+        if self.provider == 'openai':
+            # OpenAI configuration
+            litellm.api_key = os.getenv("OPENAI_API_KEY")
+            if os.getenv("OPENAI_BASE_URL"):
+                litellm.api_base = os.getenv("OPENAI_BASE_URL")
+            if os.getenv("OPENAI_ORGANIZATION"):
+                litellm.organization = os.getenv("OPENAI_ORGANIZATION")
+                
+        elif self.provider == 'anthropic':
+            # Anthropic configuration
+            litellm.api_key = os.getenv("ANTHROPIC_API_KEY")
+            
+        elif self.provider == 'gemini':
+            # Google Gemini configuration
+            litellm.api_key = os.getenv("GEMINI_API_KEY")
+            
+        elif self.provider == 'azure':
+            # Azure OpenAI configuration
+            litellm.api_key = os.getenv("AZURE_API_KEY")
+            litellm.api_base = os.getenv("AZURE_API_BASE")
+            litellm.api_version = os.getenv("AZURE_API_VERSION", "2024-02-15-preview")
+            
+        elif self.provider == 'ollama':
+            # Ollama configuration
+            base_url = provider_config.get('base_url', 'http://localhost:11434')
+            litellm.api_base = base_url
+            
+        # Get model from provider-specific config
+        self.model = provider_config.get('model', 'gpt-4o-mini')
+        
+        # Store provider config for use in API calls
+        self.provider_config = provider_config
+    
+    def _get_model_name(self):
+        """Get the properly formatted model name for the selected provider"""
+        if self.provider == 'azure':
+            # For Azure, use deployment name if provided, otherwise use model name
+            deployment_name = self.provider_config.get('deployment_name')
+            if deployment_name:
+                return f"azure/{deployment_name}"
+            else:
+                return f"azure/{self.model}"
+        elif self.provider == 'anthropic':
+            # Anthropic models need the anthropic/ prefix
+            return f"anthropic/{self.model}"
+        elif self.provider == 'gemini':
+            # Gemini models need the gemini/ prefix
+            return f"gemini/{self.model}"
+        elif self.provider == 'ollama':
+            # Ollama models need the ollama/ prefix
+            return f"ollama/{self.model}"
+        else:
+            # OpenAI models can use the model name directly
+            return self.model
+    
+    def _validate_provider_config(self):
+        """Validate that required environment variables are set for the selected provider"""
+        missing_vars = []
+        
+        if self.provider == 'openai':
+            if not os.getenv("OPENAI_API_KEY"):
+                missing_vars.append("OPENAI_API_KEY")
+                
+        elif self.provider == 'anthropic':
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                missing_vars.append("ANTHROPIC_API_KEY")
+                
+        elif self.provider == 'gemini':
+            if not os.getenv("GEMINI_API_KEY"):
+                missing_vars.append("GEMINI_API_KEY")
+                
+        elif self.provider == 'azure':
+            if not os.getenv("AZURE_API_KEY"):
+                missing_vars.append("AZURE_API_KEY")
+            if not os.getenv("AZURE_API_BASE"):
+                missing_vars.append("AZURE_API_BASE")
+                
+        elif self.provider == 'ollama':
+            # Ollama doesn't require API keys, but we could validate base_url accessibility
+            pass
+        
+        if missing_vars:
+            raise ValueError(
+                f"Missing required environment variables for {self.provider} provider: {', '.join(missing_vars)}"
+            )
     
     def set_loggers(self, marked_as_read_logger, needs_reply_logger, general_logger):
         """Set the loggers for outputting messages to different columns"""
@@ -168,12 +259,12 @@ class EmailAssistant:
             # Get system prompt from config
             system_prompt = self.config.get('system_prompt', '')
             
-            # Get OpenAI configuration with defaults
-            openai_config = self.config.get('openai', {})
+            # Prepare model name based on provider
+            model_name = self._get_model_name()
             
             # Prepare API call parameters
             api_params = {
-                'model': self.model,
+                'model': model_name,
                 'response_model': EmailClassification,
                 'messages': [
                     {
@@ -188,12 +279,17 @@ class EmailAssistant:
             }
             
             # Add optional parameters if configured
-            if 'temperature' in openai_config:
-                api_params['temperature'] = openai_config['temperature']
-            if 'max_tokens' in openai_config:
-                api_params['max_tokens'] = openai_config['max_tokens']
-            if 'timeout' in openai_config:
-                api_params['timeout'] = openai_config['timeout']
+            if 'temperature' in self.provider_config:
+                api_params['temperature'] = self.provider_config['temperature']
+            if 'max_tokens' in self.provider_config:
+                api_params['max_tokens'] = self.provider_config['max_tokens']
+            if 'timeout' in self.provider_config:
+                api_params['timeout'] = self.provider_config['timeout']
+                
+            # Add provider-specific parameters
+            if self.provider == 'azure' and 'deployment_name' in self.provider_config:
+                # For Azure, we might need to adjust the model name
+                pass  # LiteLLM handles Azure deployment names automatically
 
             return self.llm_client.chat.completions.create(**api_params)
         except Exception as e:
@@ -357,13 +453,19 @@ class EmailAssistantApp(App):
                 needs_reply_logger=self.query_one("#needs_reply_log", Log),
                 general_logger=self.query_one("#general_log", Log)
             )
-            self.assistant.log("🎉 Email Assistant initialized successfully!", "SUCCESS")
+            self.assistant.log(f"🎉 Email Assistant initialized successfully with {self.assistant.provider} provider!", "SUCCESS")
+            self.assistant.log(f"🤖 Using model: {self.assistant.model}")
             self.assistant.log("💡 Available commands: start, resume, pause, exit")
             
             # Add helpful instructions to each column
             self.assistant.log_to_marked_as_read("🤖 Emails automatically marked as read will appear here", "INFO")
             self.assistant.log_to_needs_reply("⚠️ Emails requiring your attention will appear here", "INFO")
             
+        except ValueError as e:
+            # Handle provider configuration errors specifically
+            general_log = self.query_one("#general_log", Log)
+            general_log.write_line(f"[red]❌ LLM Provider Configuration Error: {str(e)}[/red]")
+            general_log.write_line("[yellow]💡 Please check your .env file and config.yaml for the selected provider[/yellow]")
         except Exception as e:
             general_log = self.query_one("#general_log", Log)
             general_log.write_line(f"[red]❌ Failed to initialize Email Assistant: {str(e)}[/red]")
