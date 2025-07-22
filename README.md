@@ -48,3 +48,5 @@ python main.py
     - Protonmail
     - Hotmail
     - Zoho
+- Email labelling with custom labels
+- Checkpoints to remove redundant processing
