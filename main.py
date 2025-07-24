@@ -307,13 +307,13 @@ class EmailAssistant:
         """Handle email based on classification"""
         try:
             from_addr = message.sender.email_address.address
-            subject = message.subject[:50] + "..." if len(message.subject) > 50 else message.subject
+            # subject = message.subject[:50] + "..." if len(message.subject) > 50 else message.subject
             
             # Log to general area first
-            self.log(f"📋 Processing: {subject}")
+            self.log(f"📋 Processing: {message.subject}")
             
-            if not classification.should_notify:
-                # Auto-process emails that don't need notification
+            if not classification.should_notify or classification.category == "notify":
+                # Auto-process emails that don't need notification OR are FYI-only notify emails
                 await self.mark_as_read(message, classification)
             else:
                 # These emails need attention/reply

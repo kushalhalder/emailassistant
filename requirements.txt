@@ -26,6 +26,8 @@ rich==13.9.4
 # Utilities
 python-dotenv==1.1.1
 PyYAML==6.0.2
+
 requests==2.32.3
 aiohttp==3.12.14
 httpx==0.28.1
+
