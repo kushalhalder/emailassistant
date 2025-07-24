@@ -3,27 +3,50 @@ full_name:
 name: 
 background: 
 
-# OpenAI Configuration
-openai:
-  model: "gpt-4o-mini"  # Options: gpt-4, gpt-4-turbo, gpt-4o, gpt-4o-mini, gpt-3.5-turbo
-  # Alternative models you can use:
-  # model: "gpt-4"          # More capable but slower and more expensive
-  # model: "gpt-4-turbo"    # Faster GPT-4 variant
-  # model: "gpt-4o"         # Latest GPT-4 optimized model
-  # model: "gpt-3.5-turbo"  # Faster and cheaper, less capable
+# LLM Provider Configuration
+llm:
+  provider: "openai"  # Options: openai, anthropic, gemini, azure, ollama
   
-  # Optional: Temperature for response creativity (0.0 to 2.0)
-  temperature: 0.1
+  # OpenAI Configuration
+  openai:
+    model: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 1000
+    timeout: 30
   
-  # Optional: Maximum tokens for response
-  max_tokens: 1000
+  # Anthropic Configuration
+  anthropic:
+    model: "claude-sonnet-4-20250514"
+    temperature: 0.1
+    max_tokens: 1000
+    timeout: 30
   
-  # Optional: Timeout in seconds
-  timeout: 30
+  # Google Gemini Configuration
+  gemini:
+    model: "gemini-2.5-flash-preview-04-17"
+    temperature: 0.1
+    max_tokens: 1000
+    timeout: 30
+  
+  # Azure OpenAI Configuration
+  azure:
+    model: "gpt-4o-mini"
+    deployment_name: "gpt-4o-mini"
+    temperature: 0.1
+    max_tokens: 1000
+    timeout: 30
+  
+  # Local Ollama Configuration
+  ollama:
+    model: "llama3.2:3b"
+    base_url: "http://localhost:11434"
+    temperature: 0.1
+    max_tokens: 1000
+    timeout: 30
 
 # System prompt for email classification
 system_prompt: |
-  You are an intelligent email triage assistant for <FullName>, Role at <OrgName> (describe the organisation in 20 words). Your role is to classify emails based on specific triage rules and return structured classifications.
+  You are an intelligent email triage assistant for <FullName>, <Role> at <OrgName> (describe the organisation in 20 words). Your role is to classify emails based on specific triage rules and return structured classifications.
 
   CLASSIFICATION CATEGORIES:
   1. "spam" - Auto-delete/mark as read, no notification needed
